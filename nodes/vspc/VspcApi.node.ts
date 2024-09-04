@@ -1,6 +1,6 @@
 import {
 	IExecuteFunctions,
-	IHttpRequestOptions,
+	IHttpRequestMethods,
 } from 'n8n-workflow';
 
 import {
@@ -78,21 +78,29 @@ export class VspcApi implements INodeType {
 				default: '',
 				description: 'Filter criteria for the request',
 			},
+			{
+				displayName: 'Ignore SSL Issues',
+				name: 'ignoreSslIssues',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to ignore SSL certificate validation issues',
+			},
 		],
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const returnData: INodeExecutionData[] = [];
 
-		const credentials = await this.getCredentials('vspcApiCredentials') as { baseUrl: string, token: string };
+		const credentials = await this.getCredentials('vspcApiCredentials-Api') as { baseUrl: string, token: string };
 
 		const endpoint = this.getNodeParameter('endpoint', 0) as string;
 		const limit = this.getNodeParameter('limit', 0) as number;
 		const offset = this.getNodeParameter('offset', 0) as number;
 		const sort = this.getNodeParameter('sort', 0) as string;
 		const filter = this.getNodeParameter('filter', 0) as string;
+		const ignoreSslIssues = this.getNodeParameter('ignoreSslIssues', 0) as boolean;
 
-		let apiUrl = `${credentials.baseUrl}/api/v3/infrastructure`;
+		let apiUrl = `${credentials.baseUrl.replace(/\/$/, '')}/api/v3/infrastructure`;
 
 		if (endpoint === 'backupJobs') {
 			apiUrl += `/backupServers/jobs`;
@@ -107,19 +115,22 @@ export class VspcApi implements INodeType {
 		if (sort) queryParams.sort = sort;
 		if (filter) queryParams.filter = filter;
 
-		const requestOptions: IHttpRequestOptions = {
-			method: 'GET',
-			url: apiUrl,
+		const requestOptions = {
+			method: 'GET' as IHttpRequestMethods,
 			qs: queryParams,
+			uri: apiUrl,
 			headers: {
 				Authorization: `Bearer ${credentials.token}`,
 				'Content-Type': 'application/json',
 			},
 			json: true,
+			agentOptions: {
+				rejectUnauthorized: !ignoreSslIssues,
+			},
 		};
 
 		try {
-			const responseData = await this.helpers.httpRequest(requestOptions);
+			const responseData = await this.helpers.requestWithAuthentication.call(this, 'vspcApiCredentials-Api', requestOptions);
 			returnData.push({ json: responseData });
 		} catch (error) {
 			throw new NodeOperationError(this.getNode(), `VSPC API request failed: ${error.message}`);
