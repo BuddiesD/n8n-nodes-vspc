@@ -43,6 +43,10 @@ export class VspcApi implements INodeType {
 						name: 'Management Agents',
 						value: 'managementAgents',
 					},
+					{
+						name: 'VB365 Organization Jobs',
+						value: 'vb365OrganizationJobs',
+					},
 				],
 				default: 'backupJobs',
 				description: 'Choose the VSPC API endpoint to interact with',
@@ -106,6 +110,8 @@ export class VspcApi implements INodeType {
 			apiUrl += `/backupServers/jobs`;
 		} else if (endpoint === 'managementAgents') {
 			apiUrl += `/managementAgents`;
+		} else if (endpoint === 'vb365OrganizationJobs') {
+			apiUrl += `/vb365Servers/organizations/jobs`;
 		}
 
 		const queryParams: { [key: string]: string | number } = {
