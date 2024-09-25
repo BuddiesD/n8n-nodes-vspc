@@ -34,6 +34,7 @@ export class VspcApi implements INodeType {
 				displayName: 'Endpoint',
 				name: 'endpoint',
 				type: 'options',
+				// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items
 				options: [
 					{
 						name: 'Backup Jobs',
@@ -50,6 +51,10 @@ export class VspcApi implements INodeType {
 					{
 						name: 'Company',
 						value: 'company',
+					},
+					{
+						name: 'Tenant Products',
+						value: 'tenantProducts',
 					},
 				],
 				default: 'backupJobs',
@@ -179,6 +184,8 @@ export class VspcApi implements INodeType {
 					apiUrl += `/infrastructure/managementAgents`;
 				} else if (endpoint === 'vb365OrganizationJobs') {
 					apiUrl += `/infrastructure/vb365Servers/organizations/jobs`;
+				} else if (endpoint === 'tenantProducts') {
+					apiUrl += `/infrastructure/sites/tenants/products`;
 				}
 
 				const queryParams: { [key: string]: string | number } = {

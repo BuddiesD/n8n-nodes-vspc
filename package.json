@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-vspc",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A node for VSPC",
   "keywords": [
     "n8n-community-node-package",
