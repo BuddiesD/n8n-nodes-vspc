@@ -34,27 +34,30 @@ export class VspcApi implements INodeType {
 				displayName: 'Endpoint',
 				name: 'endpoint',
 				type: 'options',
-				// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items
 				options: [
 					{
 						name: 'Backup Jobs',
 						value: 'backupJobs',
 					},
 					{
-						name: 'Management Agents',
-						value: 'managementAgents',
-					},
-					{
-						name: 'VB365 Organization Jobs',
-						value: 'vb365OrganizationJobs',
-					},
-					{
 						name: 'Company',
 						value: 'company',
 					},
 					{
+						name: 'Management Agents',
+						value: 'managementAgents',
+					},
+					{
 						name: 'Tenant Products',
 						value: 'tenantProducts',
+					},
+					{
+						name: 'Triggered Alarms',
+						value: 'triggeredAlarms',
+					},
+					{
+						name: 'VB365 Organization Jobs',
+						value: 'vb365OrganizationJobs',
 					},
 				],
 				default: 'backupJobs',
@@ -77,11 +80,6 @@ export class VspcApi implements INodeType {
 				name: 'limit',
 				type: 'number',
 				default: 50,
-				displayOptions: {
-					hide: {
-						endpoint: ['company'],
-					},
-				},
 				description: 'Max number of results to return',
 				typeOptions: {
 					minValue: 1,
@@ -92,11 +90,6 @@ export class VspcApi implements INodeType {
 				name: 'offset',
 				type: 'number',
 				default: 0,
-				displayOptions: {
-					hide: {
-						endpoint: ['company'],
-					},
-				},
 				description: 'Offset for pagination',
 			},
 			{
@@ -104,11 +97,6 @@ export class VspcApi implements INodeType {
 				name: 'sort',
 				type: 'string',
 				default: '',
-				displayOptions: {
-					hide: {
-						endpoint: ['company'],
-					},
-				},
 				description: 'Sort criteria',
 			},
 			{
@@ -116,12 +104,14 @@ export class VspcApi implements INodeType {
 				name: 'filter',
 				type: 'string',
 				default: '',
-				displayOptions: {
-					hide: {
-						endpoint: ['company'],
-					},
-				},
 				description: 'Filter criteria for the request',
+			},
+			{
+				displayName: 'Select',
+				name: 'select',
+				type: 'string',
+				default: '',
+				description: 'Explicitly requested properties (comma-separated)',
 			},
 			{
 				displayName: 'Ignore SSL Issues',
@@ -177,6 +167,7 @@ export class VspcApi implements INodeType {
 				const offset = this.getNodeParameter('offset', i) as number;
 				const sort = this.getNodeParameter('sort', i) as string;
 				const filter = this.getNodeParameter('filter', i) as string;
+				const select = this.getNodeParameter('select', i) as string;
 
 				if (endpoint === 'backupJobs') {
 					apiUrl += `/infrastructure/backupServers/jobs`;
@@ -186,6 +177,8 @@ export class VspcApi implements INodeType {
 					apiUrl += `/infrastructure/vb365Servers/organizations/jobs`;
 				} else if (endpoint === 'tenantProducts') {
 					apiUrl += `/infrastructure/sites/tenants/products`;
+				} else if (endpoint === 'triggeredAlarms') {
+					apiUrl += `/alarms/triggered`;
 				}
 
 				const queryParams: { [key: string]: string | number } = {
@@ -194,6 +187,7 @@ export class VspcApi implements INodeType {
 				};
 				if (sort) queryParams.sort = sort;
 				if (filter) queryParams.filter = filter;
+				if (select) queryParams.select = select;
 
 				const requestOptions = {
 					method: 'GET' as IHttpRequestMethods,
