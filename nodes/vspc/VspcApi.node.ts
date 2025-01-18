@@ -36,6 +36,10 @@ export class VspcApi implements INodeType {
 				type: 'options',
 				options: [
 					{
+						name: 'Active Alarms',
+						value: 'activeAlarms',
+					},
+					{
 						name: 'Backup Jobs',
 						value: 'backupJobs',
 					},
@@ -50,10 +54,6 @@ export class VspcApi implements INodeType {
 					{
 						name: 'Tenant Products',
 						value: 'tenantProducts',
-					},
-					{
-						name: 'Triggered Alarms',
-						value: 'triggeredAlarms',
 					},
 					{
 						name: 'VB365 Organization Jobs',
@@ -177,8 +177,8 @@ export class VspcApi implements INodeType {
 					apiUrl += `/infrastructure/vb365Servers/organizations/jobs`;
 				} else if (endpoint === 'tenantProducts') {
 					apiUrl += `/infrastructure/sites/tenants/products`;
-				} else if (endpoint === 'triggeredAlarms') {
-					apiUrl += `/alarms/triggered`;
+				} else if (endpoint === 'activeAlarms') {
+					apiUrl += `/alarms/active`;
 				}
 
 				const queryParams: { [key: string]: string | number } = {
