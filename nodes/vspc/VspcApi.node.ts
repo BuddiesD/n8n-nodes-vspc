@@ -35,34 +35,18 @@ export class VspcApi implements INodeType {
 				name: 'endpoint',
 				type: 'options',
 				options: [
-					{
-						name: 'Active Alarms',
-						value: 'activeAlarms',
-					},
-					{
-						name: 'Backup Jobs',
-						value: 'backupJobs',
-					},
-					{
-						name: 'Company',
-						value: 'company',
-					},
-					{
-						name: 'Management Agents',
-						value: 'managementAgents',
-					},
-					{
-						name: 'Tenant Products',
-						value: 'tenantProducts',
-					},
-					{
-						name: 'VB365 Organization Jobs',
-						value: 'vb365OrganizationJobs',
-					},
+					{ name: 'Active Alarms', value: 'activeAlarms' },
+					{ name: 'Backup Jobs', value: 'backupJobs' },
+					{ name: 'Company', value: 'company' },
+					{ name: 'Management Agents', value: 'managementAgents' },
+					{ name: 'Tenant Products', value: 'tenantProducts' },
+					{ name: 'VB365 Organization Jobs', value: 'vb365OrganizationJobs' },
 				],
 				default: 'backupJobs',
 				description: 'Choose the VSPC API endpoint to interact with',
+				noDataExpression: true,
 			},
+
 			{
 				displayName: 'Company UID',
 				name: 'companyUid',
@@ -74,51 +58,105 @@ export class VspcApi implements INodeType {
 				},
 				default: '',
 				description: 'UID of the company to retrieve information for',
+				required: true,
 			},
+
 			{
-				displayName: 'Limit',
-				name: 'limit',
-				type: 'number',
-				default: 50,
-				description: 'Max number of results to return',
-				typeOptions: {
-					minValue: 1,
+				displayName: 'Query Options',
+				name: 'queryOptions',
+				type: 'collection',
+				placeholder: 'Add Option',
+				displayOptions: {
+					show: {
+						endpoint: [
+							'backupJobs',
+							'managementAgents',
+							'vb365OrganizationJobs',
+							'tenantProducts',
+							'activeAlarms',
+						],
+					},
 				},
+				default: {},
+				options: [
+					{
+						displayName: 'Limit',
+						name: 'limit',
+						type: 'number',
+						typeOptions: {
+							minValue: 1,
+						},
+						default: 50,
+						description: 'Max number of results to return',
+					},
+					{
+						displayName: 'Offset',
+						name: 'offset',
+						type: 'number',
+						default: 0,
+						description: 'Offset for pagination',
+					},
+					{
+						displayName: 'Sort',
+						name: 'sort',
+						type: 'string',
+						default: '',
+						description: 'Sort criteria',
+					},
+					{
+						displayName: 'Filter',
+						name: 'filter',
+						type: 'string',
+						default: '',
+						description: 'Filter criteria for the request',
+					},
+					{
+						displayName: 'Select',
+						name: 'select',
+						type: 'string',
+						default: '',
+						description: 'Explicitly requested properties (comma-separated)',
+					},
+				],
 			},
+
 			{
-				displayName: 'Offset',
-				name: 'offset',
-				type: 'number',
-				default: 0,
-				description: 'Offset for pagination',
+				displayName: 'Company Options',
+				name: 'companyOptions',
+				type: 'collection',
+				placeholder: 'Add Option',
+				displayOptions: {
+					show: {
+						endpoint: ['company'],
+					},
+				},
+				default: {},
+				options: [
+					{
+						displayName: 'Select',
+						name: 'select',
+						type: 'string',
+						default: '',
+						description: 'Explicitly requested properties (comma-separated)',
+					},
+				],
 			},
+
 			{
-				displayName: 'Sort',
-				name: 'sort',
-				type: 'string',
-				default: '',
-				description: 'Sort criteria',
-			},
-			{
-				displayName: 'Filter',
-				name: 'filter',
-				type: 'string',
-				default: '',
-				description: 'Filter criteria for the request',
-			},
-			{
-				displayName: 'Select',
-				name: 'select',
-				type: 'string',
-				default: '',
-				description: 'Explicitly requested properties (comma-separated)',
-			},
-			{
-				displayName: 'Ignore SSL Issues',
-				name: 'ignoreSslIssues',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to ignore SSL certificate validation issues',
+				displayName: 'Request Options',
+				name: 'requestOptions',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				options: [
+					{
+						displayName: 'Ignore SSL Issues',
+						name: 'ignoreSslIssues',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to ignore SSL certificate validation issues',
+					},
+				],
 			},
 		],
 	};
@@ -130,12 +168,14 @@ export class VspcApi implements INodeType {
 
 		for (let i = 0; i < items.length; i++) {
 			const endpoint = this.getNodeParameter('endpoint', i) as string;
-			const ignoreSslIssues = this.getNodeParameter('ignoreSslIssues', i) as boolean;
+			const reqOpts = this.getNodeParameter('requestOptions', i, {}) as { ignoreSslIssues?: boolean };
+			const ignoreSslIssues = reqOpts.ignoreSslIssues === true;
 
 			let apiUrl = `${credentials.baseUrl.replace(/\/$/, '')}/api/v3`;
 
 			if (endpoint === 'company') {
 				const companyUid = this.getNodeParameter('companyUid', i) as string;
+				const companyOptions = this.getNodeParameter('companyOptions', i, {}) as { select?: string };
 
 				if (!companyUid) {
 					throw new NodeOperationError(this.getNode(), 'Company UID must be provided for the Company endpoint');
@@ -143,9 +183,13 @@ export class VspcApi implements INodeType {
 
 				apiUrl += `/organizations/companies/${companyUid}`;
 
+				const qs: Record<string, string> = {};
+				if (companyOptions.select) qs.select = companyOptions.select;
+
 				const requestOptions = {
 					method: 'GET' as IHttpRequestMethods,
 					uri: apiUrl,
+					qs,
 					headers: {
 						Authorization: `Bearer ${credentials.token}`,
 						'Content-Type': 'application/json',
@@ -159,15 +203,19 @@ export class VspcApi implements INodeType {
 				try {
 					const responseData = await this.helpers.requestWithAuthentication.call(this, 'vspcApiCredentials-Api', requestOptions);
 					returnData.push({ json: responseData });
-				} catch (error) {
+				} catch (error: any) {
 					throw new NodeOperationError(this.getNode(), `VSPC API request failed for Company UID ${companyUid}: ${error.message}`);
 				}
-			} else {
-				const limit = this.getNodeParameter('limit', i) as number;
-				const offset = this.getNodeParameter('offset', i) as number;
-				const sort = this.getNodeParameter('sort', i) as string;
-				const filter = this.getNodeParameter('filter', i) as string;
-				const select = this.getNodeParameter('select', i) as string;
+			}
+
+			else {
+				const queryOptions = this.getNodeParameter('queryOptions', i, {}) as {
+					limit?: number;
+					offset?: number;
+					sort?: string;
+					filter?: string;
+					select?: string;
+				};
 
 				if (endpoint === 'backupJobs') {
 					apiUrl += `/infrastructure/backupServers/jobs`;
@@ -179,19 +227,20 @@ export class VspcApi implements INodeType {
 					apiUrl += `/infrastructure/sites/tenants/products`;
 				} else if (endpoint === 'activeAlarms') {
 					apiUrl += `/alarms/active`;
+				} else {
+					throw new NodeOperationError(this.getNode(), `Unknown endpoint: ${endpoint}`);
 				}
-
-				const queryParams: { [key: string]: string | number } = {
-					limit,
-					offset,
-				};
-				if (sort) queryParams.sort = sort;
-				if (filter) queryParams.filter = filter;
-				if (select) queryParams.select = select;
+				const qs: Record<string, any> = {};
+				qs.limit = typeof queryOptions.limit === 'number' ? queryOptions.limit : 500;
+				if (typeof queryOptions.limit === 'number') qs.limit = queryOptions.limit;
+				if (typeof queryOptions.offset === 'number') qs.offset = queryOptions.offset;
+				if (queryOptions.sort) qs.sort = queryOptions.sort;
+				if (queryOptions.filter) qs.filter = queryOptions.filter;
+				if (queryOptions.select) qs.select = queryOptions.select;
 
 				const requestOptions = {
 					method: 'GET' as IHttpRequestMethods,
-					qs: queryParams,
+					qs,
 					uri: apiUrl,
 					headers: {
 						Authorization: `Bearer ${credentials.token}`,
@@ -206,12 +255,12 @@ export class VspcApi implements INodeType {
 				try {
 					const responseData = await this.helpers.requestWithAuthentication.call(this, 'vspcApiCredentials-Api', requestOptions);
 					returnData.push({ json: responseData });
-				} catch (error) {
+				} catch (error: any) {
 					throw new NodeOperationError(this.getNode(), `VSPC API request failed: ${error.message}`);
 				}
 			}
 		}
 
-		return [this.helpers.returnJsonArray(returnData)];
+		return [returnData];
 	}
 }
